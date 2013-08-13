@@ -1,0 +1,67 @@
+using System;
+using System.Collections.Generic;
+using System.Text;
+using System.Drawing;
+using System.IO;
+
+namespace Utilities
+{
+    /// <summary>
+    /// A helper class used to convert between strings and bitmaps.
+    /// </summary>
+	public sealed class Encoder
+	{
+		private Encoder() { }
+        /// <summary>
+        /// Converts a string binary representation into a bitmap.
+        /// </summary>
+        /// <param name="codedImage">The string binary representation.</param>
+        /// <returns>The bitmap.</returns>
+		public static Bitmap BitmapFromString(string codedImage)
+		{
+			byte[]	image;
+			Stream	iStream;
+            Bitmap bm;
+
+			image		= Convert.FromBase64String(codedImage);
+			iStream		= new MemoryStream();
+			iStream.Write(image, 0, image.Length);
+			bm			= Bitmap.FromStream(iStream) as Bitmap;
+			return bm;
+		}
+        /// <summary>
+        /// Converts a bitmap into a string binary representation.
+        /// </summary>
+        /// <param name="bm">The bitmap image to convert.</param>
+        /// <returns>The string binary representation.</returns>
+		/// <exception cref="ArgumentNullException">Thrown if the passed in <c>Bitmap</c> is null.</exception>
+		public static string StringFromBitmap(Bitmap bm)
+		{
+            if (bm == null) { throw new ArgumentNullException("bm"); }
+
+			Stream		iStream;
+			byte[]		image;
+			bool		saved	= false;
+
+			iStream		= new MemoryStream();
+//			bm.Save(iStream, System.Drawing.Imaging.ImageFormat.Bmp);
+			try			// try saving in native format first, otherwise save as bmp
+			{
+				bm.Save(iStream, bm.RawFormat);
+				saved		= true;
+			}
+			catch (ArgumentNullException ex)
+			{
+			}
+			if (saved == false)
+				bm.Save(iStream, System.Drawing.Imaging.ImageFormat.Bmp);
+			image		= new byte[iStream.Length];
+			iStream.Seek(0,SeekOrigin.Begin);
+			using (BinaryReader reader = new BinaryReader(iStream))
+			{
+				image	= reader.ReadBytes(Convert.ToInt32(reader.BaseStream.Length));
+				return Convert.ToBase64String(image);
+			}
+		}
+	}
+}
